@@ -1,3 +1,22 @@
+<#
+.SYNOPSIS
+    Short description
+.DESCRIPTION
+    Long description
+.EXAMPLE
+    PS C:\> Get-NBUPolicyClient -PolicyName "SomePolicy"
+    outputs a collection of objects representing the clients in the specified policy
+
+    Hardware    OperatingSystem ComputerName
+    --------    --------------- ------------
+    Windows-x86 Windows2003     abba
+.INPUTS
+    String
+.OUTPUTS
+    PSCustomObject
+.NOTES
+    General notes
+#>
 Function Get-NBUPolicyClient
 {
     #requires -version 4

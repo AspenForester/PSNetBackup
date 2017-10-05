@@ -1,4 +1,22 @@
-Function Get-NBUClientConfig
+
+<#
+.SYNOPSIS
+    Gets the Client configuration info for a given NetBackup client
+.DESCRIPTION
+    Gets the client configuration, namely the "VERSIONINFO" of the specified computer, assuming that it is known to Net Backup
+.EXAMPLE
+    PS C:\> Get-NBUClientConfig -ComputerName abba
+    Returns the Version info for the
+    ComputerName Hardware OperatingSystem
+    ------------ -------- ---------------
+    abba         win_x86  Windows2003
+.INPUTS
+    String
+.OUTPUTS
+    Output (if any)
+.NOTES
+    General notes
+#>Function Get-NBUClientConfig
 {
     [CmdletBinding()]
 
