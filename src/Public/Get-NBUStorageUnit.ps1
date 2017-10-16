@@ -2,15 +2,26 @@
 .SYNOPSIS
     Get one or all of the NetBackup Storage Units in the domain
 .DESCRIPTION
-    Long description
+    Due to problems with Veritas' documentation of the underlying bpstulist is
+    inaccurate.
+    I can only gaurantee the following fields at this time:
+        Label
+        Type
+        SubType
+        ConcurrentJobs
+        MaxFragmentSize (in MB)
+        HighWatermark
+        LowWaterMark
+        DiskPool
+    The last three are only applicable to certain types of StorageUnit.
 .EXAMPLE
     PS C:\> Get-NBUStorageUnit
 .EXAMPLE
     PS C:\> Get-NBUStorageUnit -Label SomeStorageUnit
 .INPUTS
-    Inputs to this cmdlet (if any)
+    The name (label) of a storage unit (optional)
 .OUTPUTS
-    Output from this cmdlet (if any)
+    One or more objects representing the Storage Unit(s)
 .NOTES
     General notes
 .COMPONENT
@@ -41,6 +52,7 @@ function Get-NBUStorageUnit
 
     process
     {
+        Write-Warning "Refer to Get-Help Get-NBUStorageUnit for explanation of properties!"
         try
         {
             if ($PSBoundParameters['Label'])
@@ -52,17 +64,16 @@ function Get-NBUStorageUnit
                 $bpstulist = & "$NBUbin\admincmd\bpstulist.exe" -l
             }
 
-            $bpstulist = bpstulist.exe -l
-
             foreach ($StorageUnit in $bpstulist)
             {
                 $items = $StorageUnit -split "\s"
                 [pscustomobject]@{
                     Label           = $items[0]
                     Type            = $items[1]
+                    SubType         = $items[14]
                     Host            = $items[2]
-                    Density         = $items[3]
-                    ConcurrentJobs  = $items[4]
+                    
+                    ConcurrentJobs  = $items[6]
                     InitialMPX      = $items[5]
                     Path            = $items[8]
                     OnDemandOnly    = $items[7]
@@ -70,11 +81,11 @@ function Get-NBUStorageUnit
                     MaxFragmentSize = $items[11]
                     NDMPAttachHost  = $items[12]
                     Throttle        = ''
-                    SubType         = ''
+                    Density         = $items[3]
                     DiskFlags       = $items[13]
                     HighWaterMark   = $items[16]
                     LowWaterMark    = $items[17]
-                    OKOnRoot        = $items[18]
+                    OKOnRoot        = $items[18] -as [bool]
                     DiskPool        = $items[19]
                     HostList        = $items[20]
                     Something       = $items[21]
