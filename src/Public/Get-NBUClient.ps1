@@ -30,12 +30,13 @@ function Get-BPClient
     Begin
     {
         # Test to see if you are on an NBU master or media server.
+        $NBUbin = "C:\Program Files\Veritas\NetBackup\bin"
     }
     Process
     {
         if ( -not ($psboundparmeters['Computername']))
         {
-            (&' C:\Program Files\Veritas\NetBackup\bin\admincmd\bpclient.exe' -All `
+            (& "$NBUbin\admincmd\bpclient.exe" -All `
                     | Where {$_ -like "Client Name*"}).replace('Client Name: ', '')
         }
         else
@@ -43,7 +44,7 @@ function Get-BPClient
             try
             {
                 $ErrorActionPreference = Stop
-                (&' C:\Program Files\Veritas\NetBackup\bin\admincmd\bpclient.exe' -client $Computername -l `
+                (& "$NBUbin\admincmd\bpclient.exe" -client $Computername -l `
                         | Where {$_ -like "Client Name*"}).replace('Client Name: ', '')
             }
             Catch
