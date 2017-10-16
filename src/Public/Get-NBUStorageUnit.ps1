@@ -36,6 +36,7 @@ function Get-NBUStorageUnit
 
     begin
     {
+        $NBUbin = "C:\Program Files\Veritas\NetBackup\bin"
     }
 
     process
@@ -44,11 +45,11 @@ function Get-NBUStorageUnit
         {
             if ($PSBoundParameters['Label'])
             {
-                $bpstulist = bpstulist.exe -label $Label -l
+                $bpstulist = & "$NBUbin\admincmd\bpstulist.exe" -label $Label -l
             }
             else
             {
-                $bpstulist = bpstulist.exe -l
+                $bpstulist = & "$NBUbin\admincmd\bpstulist.exe" -l
             }
 
             $bpstulist = bpstulist.exe -l
