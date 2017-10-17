@@ -74,6 +74,24 @@ Function Get-NetBackupPolicy
                     FOREACH ($policy in $bppllist)
                     {
                         ####  !!!!  This doesn't really work.  It's not line by line
+                        <#
+                        Don't do -as [string]
+
+                        then
+
+                        foreach ($Lin in $bppllist)
+                        {
+                            if ($line -eq "")
+                            {
+                                # It's a new policy!
+                            }
+                            else
+                            {
+                                Process the next line of the policy info
+                            }
+                        }
+                        #>
+
                         #http://www.symantec.com/business/support/index?page=content&id=HOWTO90333
                         [pscustomobject] @{
                             PolicyName = ($policy[0] -split " ")[0]
@@ -91,7 +109,7 @@ Function Get-NetBackupPolicy
                 'byPolicy'
                 {
                     Write-Verbose -Message "[PROCESS] PARAM: AllPolicies"
-                    $bpplinfo = & "$NBUbin\admincmd\bpplinfo.exe" $Policy -
+                    $bpplinfo = & "$NBUbin\admincmd\bpplinfo.exe" $Policy -l
 
                 }
                 Default
