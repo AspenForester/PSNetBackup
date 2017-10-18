@@ -55,6 +55,34 @@ Function Get-NetBackupPolicy
         {
             Throw "This command needs to run on a master or media server"
         }
+
+        $IgnoreList = ('KEY','BCMD','RCMD','FOE','SHAREGROUP','SCHEDFOE','NAMES')
+        $PolicyTypes = @{
+            0  = 'Standard'
+            1  = 'Proxy'
+            4  = 'Oracle'
+            6  = 'Informix-On-BAR'
+            7  = 'Sybase'
+            8  = 'MS-SharePoint'
+            11 = 'DataTools-SQL-BackTrack'
+            13 = 'MS-Windows'
+            15 = 'MS-SQL-Server'
+            16 = 'MS-Exchange-Server'
+            17 = 'SAP'
+            18 = 'DB2'
+            19 = 'NDMP'
+            20 = 'FlashBackup'
+            21 = 'Splitmirror'
+            25 = 'Notes'
+            29 = 'FlashBackup-Windows'
+            35 = 'NBU-Catalog'
+            36 = 'Generic'
+            38 = 'PureDisk export'
+            39 = 'Enterprise_Vault'
+            40 = 'VMware'
+            41 = 'Hyper-V'
+        }
+
     }
     PROCESS
     {
@@ -66,31 +94,82 @@ Function Get-NetBackupPolicy
                 {
                     # List the Policies
                     Write-Verbose -Message "[PROCESS] PARAM: AllPolicies"
-                    $bppllist = (& "$NBUbin\admincmd\bppllist.exe" -allpolicies) -as [String]
+                    $bppllist = & "$NBUbin\admincmd\bppllist.exe" -allpolicies
 
-                    # Split the Policies
-                    $bppllist = $bppllist -split "CLASS\s"
+                    # Add an end of file tag
+                    $bppllist = $bppllist + "EOF"
 
-                    FOREACH ($policy in $bppllist)
-                    {
-                        ####  !!!!  This doesn't really work.  It's not line by line
-                        <#
-                        Don't do -as [string]
+                    $PolicyHash = @{}
 
-                        then
-
-                        foreach ($Lin in $bppllist)
+                        foreach ($Line in $bppllist)
                         {
-                            if ($line -eq "")
+                            $header = ($Line -split " ")[0]
+                            switch ($Header)
                             {
-                                # It's a new policy!
-                            }
-                            else
-                            {
-                                Process the next line of the policy info
+                                {$_ -in $IgnoreList}
+                                {
+                                     # We're ignoring these! Might want to move the array
+                                     break
+                                }
+                                {$_ -in ('CLASS','EOF')}
+                                {
+                                    if ($InRecord -eq $True)
+                                    {
+                                        # You're about to start a new record, so output the one you've already compiled
+                                        [PSCustomObject]$PolicyHash
+                                        $PolicyHash = @{}
+                                    }
+                                        # Now Capture the stuff on this line
+                                        $Class = $Line -split ' '
+                                        $PolicyName = $Class[1]
+                                        $PolicyHash["PolicyName"] = $PolicyName
+                                        $InRecord = $True
+                                }
+                                'INFO'
+                                {
+                                    $info = $Line -split ' '
+                                    $PolicyHash["PolicyType"] = $PolicyTypes[$info[1]]
+                                    $PolicyHash["FollowNFS"] = $info[2]
+                                    $PolicyHash["ClientSideCompress"] = $info[3]
+                                    $PolicyHash["Priority"] = $info[4]
+                                    # Skipping Proxy Client
+                                    $PolicyHash["ClientSideEncryption"] = [bool]$info[6]
+                                    $PolicyHash["DisaterRecovery"] = [bool]$info[7]
+                                    $PolicyHash["MaxJobsPerClient"] = $info[8]
+                                    $PolicyHash["CrossMountPoints"] = [bool]$info[9]
+                                    # Skipping Field 10
+                                    $PolicyHash["Active"] = [bool]$info[11]
+                                    $PolicyHash["CollectTrueImageRestore"] = $info[12] # Triple State 0,1,2
+                                    $PolicyHash["BlockLevelIncremental"] = [bool]$info[13]
+                                }
+                                'RES' {}
+                                'POOL' {}
+                                'DATACLASSIFICATION' {}
+                                'CLIENT'
+                                {
+                                    # accumulate an array of Client objects
+                                }
+                                'INCLUDE'
+                                {
+                                    # accumulate an array of inclusion directives
+                                }
+                                'SCHED' {}
+                                'SCHEDWIN' {}
+                                'SCHEDRES' {}
+                                'SCHEDPOOL' {}
+                                'SCHEDRL' {}
+                                'SCHEDSG'
+                                {
+                                    # This is the end of a schedule object.
+                                }
+
+                                Default
+                                {
+                                    # Need to save Default for reall errors
+                                }
                             }
                         }
-                        #>
+
 
                         #http://www.symantec.com/business/support/index?page=content&id=HOWTO90333
                         [pscustomobject] @{
@@ -104,7 +183,7 @@ Function Get-NetBackupPolicy
                             RES        = ($policy[6])
                             POOL       = ($policy[7])[5..($policy[7].count)] -split " "
                         }
-                    }
+
                 }
                 'byPolicy'
                 {
