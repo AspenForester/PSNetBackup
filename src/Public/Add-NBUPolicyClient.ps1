@@ -4,28 +4,28 @@ Function Add-NBUPolicyClient
 
     Param
     (
-        # Param1 help description
+        # Name of the NetBackup policy that is being updated
         [Parameter(Mandatory = $true,
             ValueFromPipelineByPropertyName = $false,
             Position = 0)]
         [String]
         $PolicyName,
 
-        # Param2 help description
+        # Name of the computer being added to the policy
         [Parameter(Mandatory = $true,
             ValueFromPipelineByPropertyName = $true,
             Position = 1)]
         [String]
         $ComputerName,
 
-        # Param2 help description
+        # Hardware designator for the client being added to the policy
         [Parameter(Mandatory = $true,
             ValueFromPipelineByPropertyName = $true,
             Position = 2)]
         [String]
         $Hardware,
 
-        # Param2 help description
+        # OS Designator for the client being added to the policy
         [Parameter(Mandatory = $true,
             ValueFromPipelineByPropertyName = $true,
             Position = 3)]
