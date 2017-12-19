@@ -21,18 +21,30 @@ Function Install-NBUAgent
         # Name of Computer to install the agent on.
         [Parameter(Mandatory = $true,
             Position = 0)]
-        [String[]]  
+        [String[]]
         $Computername,
 
-        # 
+        #
         [Parameter(Mandatory = $false)]
-        [String]  
+        [String]
         $master = 'itnbupw001',
 
         [Parameter(Mandatory = $false)]
-        [String[]]  
-        $Additional = 'sharptail,itsymap002,itnbupw004,itnbupw005,itnbupw006,itnbupl001,itnbupl002'
+        [String[]]
+        $Additional = 'sharptail,itsymap002,itnbupw004,itnbupw005,itnbupw006,itnbupl001,itnbupl002',
+
+        [Parameter(Mandatory = $false)]
+        [String]
+        $Source = "\\itnbupw001\Deploy\NBU-8\NetBackup_8.0_Win\PC_Clnt\x64"
+
     )
+    begin
+    {
+        if (-not (Test-Path $Source))
+        {
+            Throw "Unable to access $Source to install from"
+        }
+    }
 
     process
     {
@@ -67,21 +79,19 @@ PBXCONFIGURECS:FALSE
 
             If (-not (Test-Path $ResponsePath))
             {
-                $null = New-Item -Path $ResponsePath  -ItemType Directory 
+                $null = New-Item -Path $ResponsePath  -ItemType Directory
                 Write-Verbose "C:\temp didn't exist, created it"
             }
 
             Set-Content -Value $response -Path $ResponseFile -Encoding Ascii
             Write-Verbose "Wrote the response file"
 
-            $DeployPath = "\\itnbupw001\Deploy\NBU-8\NetBackup_8.0_Win\PC_Clnt\x64"
-
             # Copy the installer (Should take about 15 sec)
-            $null = Robocopy.exe $DeployPath (Join-path $ResponsePath "x64") /mt:12 /w:5 /r:1 
+            $null = Robocopy.exe $Source (Join-path $ResponsePath "x64") /mt:12 /w:5 /r:1
             Write-Verbose "Completed copying the installer"
 
             $ScriptBlock = {
-                try 
+                try
                 {
                     Set-Location C:\temp\x64 -ErrorAction Stop
                     & .\Setup.exe --% -s /REALLYLOCAL /RESPFILE:'c:\temp\response.txt'
@@ -96,6 +106,8 @@ PBXCONFIGURECS:FALSE
 
                     Set-Location C:\
 
+                    Write-Verbose "Setup.exe exited with a $LASTEXITCODE"
+
                     Remove-Item 'C:\temp\x64' -Recurse -Force -confrim:$False
                     Remove-Item 'c:\temp\response.txt'
                 }
@@ -104,10 +116,9 @@ PBXCONFIGURECS:FALSE
                     # Basically couldn't map the drive
                     $_
                 }
-                # Now we need to figure out how to do all this remotely!  But we're getting closer!!
             }
 
-            Invoke-Command -ScriptBlock $ScriptBlock -ComputerName $Computername 
+            Invoke-Command -ScriptBlock $ScriptBlock -ComputerName $Computername
         }
         else
         {
