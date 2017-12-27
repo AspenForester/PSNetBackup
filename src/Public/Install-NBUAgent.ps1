@@ -35,7 +35,15 @@ Function Install-NBUAgent
 
         [Parameter(Mandatory = $false)]
         [String]
-        $Source = "\\itnbupw001\Deploy\NBU-8\NetBackup_8.0_Win\PC_Clnt\x64"
+        $Source = "\\itnbupw001\Deploy\NBU-8\NetBackup_8.0_Win\PC_Clnt\x64",
+
+        # Credentials
+        [ValidateNotNull()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
+        $Credential = [System.Management.Automation.PSCredential]::Empty
+
+
 
     )
     begin
@@ -77,23 +85,46 @@ PBXCONFIGURECS:FALSE
             $ResponsePath = "\\$Computername\c`$\temp"
             $ResponseFile = Join-Path $ResponsePath "Response.txt"
 
+            if ($PSBoundParameters['Credential'])
+            {
+                $CredBits = $Credential.GetNetworkCredential()
+                net use "\\$Computername\IPC`$" /u:"$($Credbits.Domain)\$($Credbits.UserName)" $($Credbits.Password)
+            }
+
             If (-not (Test-Path $ResponsePath))
             {
-                $null = New-Item -Path $ResponsePath  -ItemType Directory
+                $NewItemSplat = @{
+                    Path = $ResponsePath
+                    ItemType = 'Directory'
+                }
+                $null = New-Item @NewItemSplat
                 Write-Verbose "C:\temp didn't exist, created it"
             }
 
-            Set-Content -Value $response -Path $ResponseFile -Encoding Ascii
+            $SetContentSplat = @{
+                Value = $response
+                Path = $ResponseFile
+                Encoding = 'Ascii'
+            }
+            Set-Content @SetContentSplat
             Write-Verbose "Wrote the response file"
 
             # Copy the installer (Should take about 15 sec)
+
             $null = Robocopy.exe $Source (Join-path $ResponsePath "x64") /mt:12 /w:5 /r:1
+
+            if ($PSBoundParameters['Credential'])
+            {
+                net use "\\$Computername\IPC`$" /D
+            }
+
             Write-Verbose "Completed copying the installer"
 
             $ScriptBlock = {
                 try
                 {
                     Set-Location C:\temp\x64 -ErrorAction Stop
+                    # The --% tells Powershell to not parse what comes after
                     & .\Setup.exe --% -s /REALLYLOCAL /RESPFILE:'c:\temp\response.txt'
 
                     # We know we have to wait, so it doesn't hurt to wait 1 second before we start watching setup.exe
@@ -108,7 +139,7 @@ PBXCONFIGURECS:FALSE
 
                     Write-Verbose "Setup.exe exited with a $LASTEXITCODE"
 
-                    Remove-Item 'C:\temp\x64' -Recurse -Force -confrim:$False
+                    Remove-Item 'C:\temp\x64' -Recurse -Force -confirm:$False
                     Remove-Item 'c:\temp\response.txt'
                 }
                 catch
@@ -118,7 +149,16 @@ PBXCONFIGURECS:FALSE
                 }
             }
 
-            Invoke-Command -ScriptBlock $ScriptBlock -ComputerName $Computername
+            $InvokeHash = @{
+                ScriptBlock = $ScriptBlock
+                ComputerName = $Computername
+            }
+
+            if ($PSBoundParameters['Credential'])
+            {
+                $InvokeHash.Add('Credential',$Credential)
+            }
+            Invoke-Command @InvokeHash
         }
         else
         {
