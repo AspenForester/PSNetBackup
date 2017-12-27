@@ -6,6 +6,9 @@
 .EXAMPLE
     PS C:\> Install-NBUAgent -Computername MyServer
     Installs the NetBackup 8 agent on MyServer
+.EXAMPLE
+    PS C:\> Install-NBUAgent -Computername MyServer, MyOtherServer
+    Installs the NetBackup 8 agent on MyServer and MyOtherServer
 .INPUTS
     Name of Computers to install agent on
     Name of Master Server
@@ -24,15 +27,17 @@ Function Install-NBUAgent
         [String[]]
         $Computername,
 
-        #
+        # Name of the NBU Master Server
         [Parameter(Mandatory = $false)]
         [String]
         $master = 'itnbupw001',
 
+        # One or more names of additional servers in the NBU domain
         [Parameter(Mandatory = $false)]
         [String[]]
         $Additional = 'sharptail,itsymap002,itnbupw004,itnbupw005,itnbupw006,itnbupl001,itnbupl002',
 
+        # Path to the source files.  Should be accessible by the running context, not just the additional context provided by the Credential parameter
         [Parameter(Mandatory = $false)]
         [String]
         $Source = "\\itnbupw001\Deploy\NBU-8\NetBackup_8.0_Win\PC_Clnt\x64",
@@ -42,9 +47,6 @@ Function Install-NBUAgent
         [System.Management.Automation.PSCredential]
         [System.Management.Automation.Credential()]
         $Credential = [System.Management.Automation.PSCredential]::Empty
-
-
-
     )
     begin
     {
@@ -113,7 +115,6 @@ PBXCONFIGURECS:FALSE
                 Write-Verbose "Wrote the response file"
 
                 # Copy the installer (Should take about 15 sec)
-
                 $null = Robocopy.exe $Source (Join-path $ResponsePath "x64") /mt:12 /w:5 /r:1
                 Write-Verbose "Completed copying the installer"
 
@@ -147,7 +148,7 @@ PBXCONFIGURECS:FALSE
                     }
                     catch
                     {
-                        # Basically couldn't map the drive
+                        # Something went wrong inside the remoting session.
                         $_
                     }
                 }
