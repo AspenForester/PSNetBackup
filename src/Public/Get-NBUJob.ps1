@@ -104,11 +104,14 @@ function Get-NBUJob
         {
             $Job = $Job -split ','
 
-            If ($job[10] -eq '')
+            # If a job is in progress
+            If ($job[10] -eq '0000000000')
             {
-                $ended = ''}
-            else {
-                ConvertFrom-Unixdate -UnixDate $Job[10]
+                $ended = ''
+            }
+            else
+            {
+                $ended = ConvertFrom-Unixdate -UnixDate $Job[10]
             }
 
             [PSCustomObject]@{
@@ -128,6 +131,7 @@ function Get-NBUJob
                 Kilobytes   = $Job[14]
                 Files       = $Job[15]
                 Percent     = $Job[17]
+                Priority    = $Job[23]
             }
         }
     }
