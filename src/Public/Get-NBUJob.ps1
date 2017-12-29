@@ -103,6 +103,14 @@ function Get-NBUJob
         foreach ($Job in $jobs)
         {
             $Job = $Job -split ','
+
+            If ($job[10] -eq '')
+            {
+                $ended = ''}
+            else {
+                ConvertFrom-Unixdate -UnixDate $Job[10]
+            }
+
             [PSCustomObject]@{
                 JobID       = $Job[0]
                 JobType     = $JobTypes[[int]$Job[1]]
@@ -114,7 +122,7 @@ function Get-NBUJob
                 MediaServer = $Job[7]
                 Start       = ConvertFrom-Unixdate -UnixDate $Job[8]
                 Elapsed     = [int]$Job[9]
-                Ended       = ConvertFrom-Unixdate -UnixDate $Job[10]
+                Ended       = $Ended
                 StorageUnit = $Job[11]
                 Tries       = $Job[12]
                 Kilobytes   = $Job[14]
