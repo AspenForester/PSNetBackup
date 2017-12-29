@@ -102,6 +102,7 @@ function Get-NBUJob
 
         foreach ($Job in $jobs)
         {
+            $Job = $Job -split ','
             [pscustomobject]@{
                 JobID       = $Job[0]
                 JobType     = $JobTypes.$Job[1]
