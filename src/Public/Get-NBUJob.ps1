@@ -103,17 +103,17 @@ function Get-NBUJob
         foreach ($Job in $jobs)
         {
             $Job = $Job -split ','
-            [pscustomobject]@{
+            [PSCustomObject]@{
                 JobID       = $Job[0]
-                JobType     = $JobTypes.$Job[1]
-                State       = $JobStates.$Job[2]
+                JobType     = $JobTypes[[int]$Job[1]]
+                State       = $JobStates[[int]$Job[2]]
                 Status      = $Job[3]
                 Policy      = $Job[4]
                 Schedule    = $Job[5]
                 Client      = $Job[6]
                 MediaServer = $Job[7]
                 Start       = ConvertFrom-Unixdate -UnixDate $Job[8]
-                Elapsed     = $Job[9]
+                Elapsed     = [int]$Job[9]
                 Ended       = ConvertFrom-Unixdate -UnixDate $Job[10]
                 StorageUnit = $Job[11]
                 Tries       = $Job[12]
