@@ -17,9 +17,9 @@ Function ConvertFrom-Unixdate
 
     $Date = ([datetime]'1/1/1970').AddSeconds($UnixDate)
 
-    if ($PSBoundParameters['ToUTC'])
+    if (-not $PSBoundParameters['ToUTC'])
     {
-        $Date = [timezone]::CurrentTimeZone.ToUniversalTime($Date)
+        $Date = [timezone]::CurrentTimeZone.ToLocalTime($Date)
     }
 
     Write-Output $Date
