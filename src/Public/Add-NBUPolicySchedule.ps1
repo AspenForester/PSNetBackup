@@ -22,10 +22,7 @@
 #>
 function Add-NBUPolicySchedule {
     [CmdletBinding(DefaultParameterSetName='Parameter Set 1',
-                   SupportsShouldProcess=$true,
-                   PositionalBinding=$false,
-                   HelpUri = 'http://www.microsoft.com/',
-                   ConfirmImpact='Medium')]
+                   SupportsShouldProcess=$true)]
     [Alias()]
     [OutputType([String])]
     Param (
@@ -34,42 +31,76 @@ function Add-NBUPolicySchedule {
                    Position=0,
                    ValueFromPipeline=$true,
                    ValueFromPipelineByPropertyName=$true,
-                   ValueFromRemainingArguments=$false,
-                   ParameterSetName='Parameter Set 1')]
-        [ValidateNotNull()]
-        [ValidateNotNullOrEmpty()]
-        [ValidateCount(0,5)]
-        [ValidateSet("sun", "moon", "earth")]
-        [Alias("p1")]
-        $Param1,
+                   ValueFromRemainingArguments=$false)]
+        $PolicyName,
 
         # Param2 help description
         [Parameter(ParameterSetName='Parameter Set 1')]
-        [AllowNull()]
-        [AllowEmptyCollection()]
-        [AllowEmptyString()]
-        [ValidateScript({$true})]
-        [ValidateRange(0,5)]
-        [int]
-        $Param2,
+        [String]
+        $ScheduleName,
 
         # Param3 help description
-        [Parameter(ParameterSetName='Another Parameter Set')]
-        [ValidatePattern("[a-z]*")]
-        [ValidateLength(0,15)]
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('Full','Incremental','Cumulative','TransactionLog','UserBackup','UserArchive')]
         [String]
-        $Param3
+        $Type,
+
+        # Calendar Type
+        [Parameter(Mandatory=$false)]
+        [ValidateRange(0,2)]
+        [int]
+        $CalendarType = 0,
+
+        # Residence for the scheduled backups
+        [Parameter(Mandatory=$false)]
+        [String]
+        $Residence = '*Null*',
+
+        # Window - represented as pairs of numbers: a start time and a duration.
+        [Parameter(Mandatory = $false)]
+        [psobject[]]
+        $Window,
+
+        # Passthru switch
+        [Parameter(Mandatory = $false)]
+        [switch]
+        $Passthru
     )
 
     begin {
+        $bin = 'C:\Program Files\Veritas\NetBackup\bin'
+        $admincmd = "$bin\admincmd"
+
+        If (-not (test-path $admincmd))
+        {
+            Throw "You don't seem to have NetBackup installed on this computer"
+        }
+
     }
 
     process {
-        if ($pscmdlet.ShouldProcess("Target", "Operation")) {
 
+
+        if ($pscmdlet.ShouldProcess("Target", "Operation")) {
+            Try
+            {
+                $ErrorActionPreference = 'Stop'
+                & $admincmd\bpplsched.exe $PolicyName -add $ScheduleName
+                $ErrorActionPreference = 'Continue'
+            }
+            catch
+            {
+                Write-Error "Unable to add $path to $PolicyName"
+            }
         }
     }
 
     end {
+        if ($PSBoundParameters['Passthru'])
+        {
+            [pscustomobject]@{
+                PolicyName = $PolicyName
+            }
+        }
     }
 }
