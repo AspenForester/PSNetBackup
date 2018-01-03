@@ -16,7 +16,7 @@ Function Remove-NBUPolicyClient
         [Parameter(Mandatory = $true,
             ValueFromPipelineByPropertyName = $true,
             Position = 1)]
-        [String]
+        [String[]]
         $ComputerName
     )
 
@@ -32,9 +32,12 @@ Function Remove-NBUPolicyClient
     }
     Process
     {
-        if ($pscmdlet.ShouldProcess("$ComputerName", "Remove from Policy $PolicyName"))
+        foreach ($Computer in $ComputerName)
         {
-            & "$admincmd\bpplclients.exe" $PolicyName -delete $ComputerName
+            if ($pscmdlet.ShouldProcess("$ComputerName", "Remove from Policy $PolicyName"))
+            {
+                & "$admincmd\bpplclients.exe" $PolicyName -delete $Computer
+            }
         }
     }
 }
