@@ -209,9 +209,9 @@ Function Get-NBUPolicy
                             # accumulate an array of Client objects
                             $ThisClient = $Line -split ' '
                             $Global:ClientsCollection = $Global:ClientsCollection + [pscustomobject]@{
-                                "Name" = $ThisClient[1]
-                                "HW"   = $ThisClient[2]
-                                "OS"   = $ThisClient[3]
+                                "Computername"    = $ThisClient[1]
+                                "Hardware"        = $ThisClient[2]
+                                "OperatingSystem" = $ThisClient[3]
                             }
                         }
                         'INCLUDE'
