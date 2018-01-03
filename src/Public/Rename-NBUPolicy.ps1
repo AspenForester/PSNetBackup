@@ -79,7 +79,7 @@ function Rename-NBUPolicy
                 & "$NBUbin\admincmd\bppolicynew.exe" $Name -renameto $NewName
                 $ErrorActionPreference = 'Continue'
                 [pscustomobject]@{
-                    Name = $Destination
+                    Name = $NewName
                 }
             }
             catch
