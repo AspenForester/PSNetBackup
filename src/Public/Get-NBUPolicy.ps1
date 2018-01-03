@@ -131,7 +131,7 @@ Function Get-NBUPolicy
                 # https://social.technet.microsoft.com/Forums/ie/en-US/c581523b-d54d-46da-bca4-f9e750dee8a8/netbackup-bppllist-output-array?forum=winserverpowershell
                 foreach ($Line in $bppllist)
                 {
-
+                    Write-Verbose $line
                     $header = ($Line -split " ")[0]
                     switch ($Header)
                     {
@@ -243,11 +243,12 @@ Function Get-NBUPolicy
 
                                 Remove-Variable -Scope 'Global' -Name 'IncludesCollection'
                             }
-                            if ((Test-Path Variable:Global:ScheduleCollection) -eq $false)
+                            if ((Test-Path Variable:ScheduleCollection) -eq $false)
                             {
-                                $Global:ScheduleCollection = @()
+                                $ScheduleCollection = @()
                             }
                             # Now it gets really tricky as we are collecting info about this schedule until we get to the next SCHED line
+                            $SchedDone = $false
                             $sched = $line -split ' '
                             $SchedName = $sched[1]
                             $SchedType = $Sched[2]
@@ -256,40 +257,67 @@ Function Get-NBUPolicy
                         }
                         'SCHEDCALEDATES'
                         {
+                            Write-Verbose "Parsing Specific Calendar Exclusions"
                             $SchedCalEDates = $Line -split ' '
-                            $ScheduleExclusionDates = $SchedCalEDates[1 .. ($SchedCalEDates.count -1)] # | Convertfrom-UnixDate
+                            $ScheduleExclusionDates = $SchedCalEDates[1 .. ($SchedCalEDates.count - 1)] | Convertfrom-UnixDate | get-date -format d
+
                         }
-                        'SCHEDCALENDAR' {
-                            # Indicates that it's a Calendar Schedule
+                        'SCHEDCALIDATES'
+                        {
+                            Write-Verbose "Parsing Specific Calendar Inclusions"
+                            $SchedCalIDates = $Line -split ' '
+                            $ScheduleInclusionDates = $SchedCalIDates[1 .. ($SchedCalIDates.count - 1)] | Convertfrom-UnixDate | get-date -format d
                         }
-                        'SCHEDCALDAYOWEEK' {
+                        'SCHEDCALENDAR'
+                        {
+                            # Redundant, SchedCalType (1,2) relays the same information
+                        }
+                        'SCHEDCALDAYOWEEK'
+                        {
                             $SchedCalDayOfWeek = $line -split ' '
                             $SchedCalDayOfWeek = $SchedCalDayOfWeek[1 .. ($SchedCalDayOfWeek.count - 1)] -split ';'
                             # Make a collection of pscustomobject here eventually
-
+                            # [System.DayOfWeek]$n
+                            <#
+                            $DaysofWeek = foreach ($entry in $SchedCalDayOfWeek )
+                            {
+                                $day, $which = $entry -split ','
+                                $day = [System.DayOfWeek][int]$day
+                            }
+                            #>
                         }
-                        'SCHEDWIN' {
+                        'SCHEDCALEDAYOWEEK'
+                        {
+                            Write-Verbose "Parsing recurring exclusions"
+                            $SchedCalEDayOfWeek = $line -split ' '
+                            $SchedCalEDayOfWeek = $SchedCalEDayOfWeek[1 .. ($SchedCalEDayOfWeek.Count - 1)] -split ';'
+                            # Make a collection of pscustomobject here eventually
+                            # [System.DayOfWeek]$n
+                        }
+                        'SCHEDWIN'
+                        {
                             # 7 pairs of numbers, each pair is
                             # seconds past midnight to start, and length in seconds
                             $schedWin = $line -split ' '
                             $ScheduleWindow = [pscustomobject]@{
-                                SunStart = $schedWin[1]
+                                SunStart    = $schedWin[1]
                                 SunDuration = $schedWin[2]
-                                MonStart = $schedWin[3]
+                                MonStart    = $schedWin[3]
                                 MonDuration = $schedWin[4]
-                                TueStart = $schedWin[5]
+                                TueStart    = $schedWin[5]
                                 TueDuration = $schedWin[6]
-                                WedStart = $schedWin[7]
+                                WedStart    = $schedWin[7]
                                 WedDuration = $schedWin[8]
-                                ThuStart = $schedWin[9]
+                                ThuStart    = $schedWin[9]
                                 ThuDuration = $schedWin[10]
-                                FriStart = $schedWin[11]
+                                FriStart    = $schedWin[11]
                                 FriDuration = $schedWin[12]
-                                SatStart = $schedWin[13]
+                                SatStart    = $schedWin[13]
                                 SatDuration = $schedWin[14]
                             }
                         }
-                        'SCHEDRES' {
+                        'SCHEDRES'
+                        {
                             $SchedRes = $Line -split ' '
                             $ScheduleResidence = @($SchedRes[1..($SchedRes.count - 1)])
                         }
@@ -299,18 +327,25 @@ Function Get-NBUPolicy
                         {
                             # Deal with the Share Group (we don't use that)
                             $ThisSchedule = [pscustomobject]@{
-                                Name = $SchedName
-                                Type = $ScheduleTypes[[int]$SchedType]
-                                Window = $ScheduleWindow
-                                Residence = $ScheduleResidence
-                                Calendar = $SchedCalType
+                                Name               = $SchedName
+                                Type               = $ScheduleTypes[[int]$SchedType]
+                                Window             = $ScheduleWindow
+                                Residence          = $ScheduleResidence
+                                Calendar           = $SchedCalType
+                                IncludedDates      = $ScheduleInclusionDates
+                                IncludedDaysofWeek = $SchedCalDayOfWeek
+                                ExcludedDates      = $ScheduleExclusionDates
+                                ExcludedDaysofWeek = $SchedCalEDayOfWeek
                             }
 
                             # This is the end of a schedule object.
                             $ScheduleCollection = $ScheduleCollection + $ThisSchedule
+
+                            Remove-Variable ScheduleExclusionDates, SchedCalEDayOfWeek, SchedCalDayOfWeek, ScheduleInclusionDates -ErrorAction SilentlyContinue
                             $SchedDone = $True
                         }
-                        'EOF' {
+                        'EOF'
+                        {
                             Write-Verbose "Parsing EOF Line"
                             if ($InRecord -eq $True)
                             {
@@ -333,7 +368,7 @@ Function Get-NBUPolicy
                     }
 
 
-<#
+                    <#
                     #http://www.symantec.com/business/support/index?page=content&id=HOWTO90333
                     [pscustomobject] @{
                         PolicyName = ($policy[0] -split " ")[0]
