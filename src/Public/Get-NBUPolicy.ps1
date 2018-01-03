@@ -1,4 +1,4 @@
-Function Get-NetBackupPolicy
+Function Get-NBUPolicy
 {
     <#
     .SYNOPSIS
@@ -131,7 +131,7 @@ Function Get-NetBackupPolicy
                 # https://social.technet.microsoft.com/Forums/ie/en-US/c581523b-d54d-46da-bca4-f9e750dee8a8/netbackup-bppllist-output-array?forum=winserverpowershell
                 foreach ($Line in $bppllist)
                 {
-                    Write-Verbose "$Line"
+
                     $header = ($Line -split " ")[0]
                     switch ($Header)
                     {
@@ -143,6 +143,18 @@ Function Get-NetBackupPolicy
                         'CLASS'
                         {
                             Write-Verbose "Parsing Class Line"
+                            if ($InRecord -eq $True)
+                            {
+                                # You're about to start a new record, so output the one you've already compiled
+                                $PolicyHash["Schedule"] = $ScheduleCollection
+                                [PSCustomObject]$PolicyHash
+
+                                # Reset the constructors
+                                $PolicyHash = @{}
+                                $SchedDone = $false
+                                Remove-Variable ScheduleCollection
+                                $InRecord = $false
+                            }
 
                             # Now Capture the stuff on this line
                             $Class = $Line -split ' '
@@ -244,7 +256,8 @@ Function Get-NetBackupPolicy
                         }
                         'SCHEDCALEDATES'
                         {
-
+                            $SchedCalEDates = $Line -split ' '
+                            $ScheduleExclusionDates = $SchedCalEDates[1 .. ($SchedCalEDates.count -1)] # | Convertfrom-UnixDate
                         }
                         'SCHEDCALENDAR' {
                             # Indicates that it's a Calendar Schedule
@@ -298,11 +311,15 @@ Function Get-NetBackupPolicy
                             $SchedDone = $True
                         }
                         'EOF' {
+                            Write-Verbose "Parsing EOF Line"
                             if ($InRecord -eq $True)
                             {
                                 # You're about to start a new record, so output the one you've already compiled
                                 $PolicyHash["Schedule"] = $ScheduleCollection
+
                                 [PSCustomObject]$PolicyHash
+
+                                # Reset the constructors - we don't really need to since we're done
                                 $PolicyHash = @{}
                                 $SchedDone = $false
                                 Remove-Variable ScheduleCollection
